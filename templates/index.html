@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ada Vision</title>
+    <!-- PWA & Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✨</text></svg>">
+    <link rel="manifest" href="/manifest.json"> <!-- Link to manifest served by Flask -->
+    <meta name="theme-color" content="#343a40"/> <!-- Match header color -->
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header class="app-header">
+             <h1>Ada Vision</h1>
+        </header>
+
+        <!-- Input Card -->
+        <div class="input-options card">
+            <label for="imageInput" class="file-label" title="Upload an image file"><i class="fa-solid fa-upload"></i> Upload Image</label>
+            <input type="file" id="imageInput" accept="image/*">
+            <span class="separator-text">OR</span>
+            <button id="startCameraButton" class="secondary-button" title="Use your device camera"><i class="fa-solid fa-camera"></i> Take Picture</button>
+        </div>
+
+        <!-- Camera View Card -->
+        <div id="cameraArea" class="camera-view card" style="display: none;">
+            <video id="videoElement" autoplay playsinline></video>
+             <div class="camera-controls">
+                <button id="snapButton" class="primary-accent-button" title="Capture photo from camera"><i class="fa-solid fa-circle-dot"></i> Snap Photo</button>
+                <button id="cancelCameraButton" class="secondary-button" title="Close camera view"><i class="fa-solid fa-xmark"></i> Cancel</button>
+            </div>
+        </div>
+
+        <!-- Controls Card -->
+        <div class="controls-section card">
+            <label for="languageSelect">Translate extracted text to:</label>
+            <select id="languageSelect" title="Select target language for translation">
+                <option value="english">English</option>
+                <option value="spanish">Spanish</option>
+                <option value="french">French</option>
+                <option value="german">German</option>
+                <option value="turkish">Turkish</option>
+                <option value="italian">Italian</option>
+                <option value="portuguese">Portuguese</option>
+                <option value="japanese">Japanese</option>
+                <option value="russian">Russian</option>
+            </select>
+            <div class="action-buttons">
+                <button id="identifyObjectsButton" class="secondary-button" disabled title="Identify objects in the image"><i class="fa-solid fa-magnifying-glass"></i> Identify Objects</button>
+                <button id="estimateAgeButton" class="secondary-button" disabled title="Estimate age from image"><i class="fa-solid fa-child-reaching"></i> Estimate Age</button>
+                <button id="analyzeButton" class="primary-action-button" disabled title="Extract text and translate"><i class="fa-solid fa-wand-magic-sparkles"></i> Analyze & Translate</button>
+            </div>
+            <canvas id="canvasElement" style="display: none;"></canvas>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" style="display: none;">
+            <p id="loadingText">Processing...</p>
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Preview Card -->
+        <div id="previewArea" class="card" style="display: none;">
+             <h2><i class="fa-solid fa-image"></i> Preview</h2>
+             <img id="imagePreview" src="#" alt="Image Preview" />
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tab-navigation card" style="display: none;"> <!-- Hidden initially, shown when results appear -->
+            <!-- Default active tab -->
+            <button class="tab-button active" data-target="resultsArea"><i class="fa-solid fa-language"></i> Text & Translation</button>
+            <button class="tab-button" data-target="objectsArea"><i class="fa-solid fa-cubes"></i> Objects</button>
+            <button class="tab-button" data-target="ageEstimateArea"><i class="fa-solid fa-cake-candles"></i> Age Estimate</button>
+        </div>
+
+        <!-- Tab Content Panes -->
+        <!-- Age Estimate Area -->
+        <div id="ageEstimateArea" class="tab-pane card" style="display: none;"> <!-- Starts hidden -->
+            <h2><i class="fa-solid fa-cake-candles"></i> Age Estimation</h2>
+            <div class="result-box">
+                 <p id="ageEstimateText"></p>
+            </div>
+        </div>
+
+        <!-- Object Identification Area -->
+        <div id="objectsArea" class="tab-pane card" style="display: none;"> <!-- Starts hidden -->
+             <h2><i class="fa-solid fa-cubes"></i> Identified Objects</h2>
+             <div class="result-box">
+                  <p id="identifiedObjectsText"></p>
+             </div>
+        </div>
+
+        <!-- Text Analysis Area (Default Active Pane) -->
+        <div id="resultsArea" class="tab-pane card active" style="display: none;"> <!-- Starts hidden but active -->
+             <h2><i class="fa-solid fa-rectangle-list"></i> Text Analysis</h2>
+             <div class="result-box">
+                 <div class="result-header">
+                     <h3><i class="fa-solid fa-quote-left"></i> Extracted Text</h3>
+                     <div class="button-group">
+                         <button id="analyzeCorrectButton" class="tertiary-button" title="Check extracted text for errors" style="display: none;">
+                             <i class="fa-solid fa-check-double"></i> Correct Text
+                         </button>
+                         <button class="copy-button tertiary-button" data-target="extractedText" title="Copy Extracted Text">
+                             <i class="fa-regular fa-copy"></i> Copy
+                         </button>
+                     </div>
+                 </div>
+                 <pre id="extractedText"></pre>
+             </div>
+
+             <div id="correctionArea" class="result-box" style="display: none;">
+                 <div class="result-header">
+                    <h3><i class="fa-solid fa-lightbulb"></i> Correction Suggestion</h3>
+                    <div class="button-group">
+                        <button class="copy-button tertiary-button" data-target="correctedText" title="Copy Correction">
+                            <i class="fa-regular fa-copy"></i> Copy
+                        </button>
+                    </div>
+                 </div>
+                  <pre id="correctedText"></pre>
+             </div>
+
+             <div class="result-box">
+                  <div class="result-header">
+                     <h3 id="translationLabel"><i class="fa-solid fa-language"></i> Translated Text</h3>
+                     <div class="button-group">
+                         <button id="speakButton" class="tertiary-button" title="Speak Translated Text" style="display: none;">
+                             <i class="fa-solid fa-volume-high"></i> Speak
+                         </button>
+                         <button class="copy-button tertiary-button" data-target="translatedText" title="Copy Translated Text">
+                             <i class="fa-regular fa-copy"></i> Copy
+                         </button>
+                     </div>
+                 </div>
+                 <pre id="translatedText"></pre>
+             </div>
+        </div>
+
+        <!-- Error Card -->
+        <div id="errorArea" style="display: none;" class="error-message card">
+             <h3><i class="fa-solid fa-circle-exclamation"></i> Error</h3>
+             <p id="errorMessage"></p>
+        </div>
+    </div>
+
+    <!-- Main App Script -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    <!-- Service Worker Registration Script -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js') // Register from root path
+                    .then(registration => {
+                        console.log('Service Worker registered successfully with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        } else {
+            console.log('Service workers are not supported in this browser.');
+        }
+    </script>
+</body>
+</html>
