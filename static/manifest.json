@@ -4,8 +4,8 @@
   "description": "Analyze text, objects, and age in images, then translate text.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8f9fa",
-  "theme_color": "#343a40",
+  "background_color": "#121212",
+  "theme_color": "#1e1e1e",
   "orientation": "portrait-primary",
   "icons": [
     {
